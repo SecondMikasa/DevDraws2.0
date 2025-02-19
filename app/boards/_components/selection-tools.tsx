@@ -1,14 +1,25 @@
 "use client"
 
 import { memo } from "react";
+import { Trash2 } from "lucide-react";
 
-import { Camera, Color } from "@/types/canvas"
+import {
+    Camera,
+    Color
+} from "@/types/canvas"
 
-import { useMutation, useSelf } from "@liveblocks/react/suspense";
+import {
+    useMutation,
+    useSelf
+} from "@liveblocks/react/suspense";
 
 import { useSelectionBounds } from "@/hooks/use-selection-bounds";
+import { useDeleteLayers } from "@/hooks/use-delete-layer";
 
 import { ColorPicker } from "./subcomponents/color-picker";
+
+import { Button } from "@/components/ui/button";
+import { Hint } from "@/components/hint";
 
 interface SelectionToolsProps {
     camera: Camera;
@@ -39,6 +50,8 @@ export const SelectionTools = memo(({
         setLastUsedColor
     ])
 
+    const deletelayers = useDeleteLayers()
+
     const selectionBounds = useSelectionBounds()
 
     if (!selectionBounds) {
@@ -61,6 +74,19 @@ export const SelectionTools = memo(({
             <ColorPicker
                 onChange={setFill}
             />
+            <div
+                className="flex items-center pl-2 ml-2 border-l border-neutral-200"
+            >
+                <Hint label="Delete">
+                    <Button
+                        variant="board"
+                        size="icon"
+                        onClick={deletelayers}
+                    >
+                        <Trash2 />
+                    </Button>
+                </Hint>
+            </div>
         </div>
     )
 })

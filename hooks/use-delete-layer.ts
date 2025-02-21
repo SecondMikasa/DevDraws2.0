@@ -1,26 +1,22 @@
 import { useSelf, useMutation } from "@liveblocks/react/suspense"
 
 export const useDeleteLayers = () => {
+    const selection = useSelf((me) => me.presence.selection) || []
 
-    //
-    const selection = useSelf((me) => me.presence.selection)
+    return useMutation(({ storage, setMyPresence }) => {
+        if (selection.length === 0) return
 
-    return useMutation((
-    {storage, setMyPresence}
-    ) => {
         const liveLayers = storage.get("layers")
-        const liveLayersIds = storage.get("layerIds")
+        const liveLayerIds = storage.get("layerIds")
 
-        for (const id of selection) {
-            liveLayers.delete(id)
+        // Delete selected layers
+        selection.forEach((id) => liveLayers.delete(id))
 
-            const index = liveLayersIds.indexOf(id)
+        // Filter out deleted layer IDs
+        const updatedLayerIds = liveLayerIds.filter((id) => !selection.includes(id))
+        storage.set("layerIds", updatedLayerIds)
 
-            if (index !== -1) {
-                liveLayersIds.delete(index)
-            }
-        }
-
-        setMyPresence({selection: []}, {addToHistory: true})
+        // Clear selection and add to history
+        setMyPresence({ selection: [] }, { addToHistory: true })
     }, [selection])
 }

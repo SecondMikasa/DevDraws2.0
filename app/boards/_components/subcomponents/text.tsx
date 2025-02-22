@@ -50,7 +50,9 @@ export const Text = ({
         liveLayers.get(id)?.set("value", newValue)
     }, [])
 
-    const handleContentChange = (e:)
+    const handleContentChange = (e: ContentEditableEvent) => {
+        updateValue(e.target.value)
+    }
 
     return (
         <foreignObject
@@ -65,7 +67,7 @@ export const Text = ({
         >
             <ContentEditable
                 html={"Text"}
-                onChange={() => { }}
+                onChange={handleContentChange}
                 className={cn(
                     "h-full w-full flex items-center justify-center text-center drop-shadow-md outline-none",
                     font.className

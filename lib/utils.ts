@@ -1,6 +1,7 @@
 import {
   Camera,
   Color,
+  Layer,
   Point,
   Side,
   XYWH
@@ -49,7 +50,7 @@ export function resizeBounds(
   corner: Side,
   point: Point
 ): XYWH {
-  
+
   const result = {
     x: bounds.x,
     y: bounds.y,
@@ -78,4 +79,41 @@ export function resizeBounds(
   }
 
   return result
+}
+
+export function findIntersectingLayersWithRectangle(
+  layerIds: readonly string[],
+  layers: ReadonlyMap<string, Layer>,
+  a: Point,
+  b: Point
+) {
+  const rect = {
+    x: Math.min(a.x, b.x),
+    y: Math.min(a.y, b.y),
+    width: Math.abs(a.x - b.x),
+    height: Math.abs(a.y - b.y)
+  }
+
+  const ids = []
+
+  for (const layerId of layerIds) {
+    const layer = layers.get(layerId)
+
+    if (layer == null) {
+      continue
+    }
+
+    const { x, y, height, width } = layer
+
+    if (
+      rect.x + rect.width > x &&
+      rect.x < rect.width + x &&
+      rect.y + rect.height > y &&
+      rect.y < rect.height + y
+    ) {
+      ids.push(layerId)
+    }
+  }
+
+  return ids
 }

@@ -81,10 +81,10 @@ export type XYWH = {
 }
 
 export enum Side {
-    Top = 1,
-    Bottom = 2,
-    Left = 4,
-    Right = 8,
+    Top = 1 << 0,    // 1
+    Bottom = 1 << 1, // 2
+    Left = 1 << 2,   // 4
+    Right = 1 << 3   // 8
 }
 
 export type CanvasState =

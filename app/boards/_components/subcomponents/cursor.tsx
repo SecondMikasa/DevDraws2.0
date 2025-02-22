@@ -17,7 +17,7 @@ export const Cursor = memo(({
     const info = useOther(connectionId, (user) => user?.info)
     const cursor = useOther(connectionId, (user) => user?.presence.cursor)
 
-    console.log(info, cursor)
+    // console.log(info, cursor)
 
     const name = info?.name || "Teammate"
 

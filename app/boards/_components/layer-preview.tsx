@@ -1,11 +1,14 @@
 "use client"
 
-import { LayerType } from "@/types/canvas";
-import { useStorage } from "@liveblocks/react";
 import { memo } from "react";
+
+import { LayerType } from "@/types/canvas";
+
+import { useStorage } from "@liveblocks/react";
+
 import { Rectangle } from "./subcomponents/rectangle";
-
-
+import { Ellipse } from "./subcomponents/ellipse";
+import { Text } from "./subcomponents/text";
 
 interface LayerPreviewProps {
     id: string;
@@ -20,7 +23,7 @@ export const LayerPreview = memo(({
 }: LayerPreviewProps) => {
 
     const layer = useStorage((root) => root.layers.get(id))
-    
+
     // console.log({
     //     layer
     // }, "LAYER_PREVIEW")
@@ -30,7 +33,6 @@ export const LayerPreview = memo(({
     }
 
     switch (layer.type) {
-
         case LayerType.Rectangle:
             return (
                 <Rectangle
@@ -40,7 +42,27 @@ export const LayerPreview = memo(({
                     selectionColor={selectionColor}
                 />
             );
-        
+
+        case LayerType.Ellipse:
+            return (
+                <Ellipse
+                    id={id}
+                    layer={layer}
+                    onPointerDown={onLayerPointerDown}
+                    selectionColor={selectionColor}
+                />
+            );
+
+        case LayerType.Text:
+            return (
+                <Text
+                    id={id}
+                    layer={layer}
+                    onPointerDown={onLayerPointerDown}
+                    selectionColor={selectionColor}
+                />
+            )
+
         default:
             console.warn("Unknown Layer Type")
     }

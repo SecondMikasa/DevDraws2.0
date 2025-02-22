@@ -9,6 +9,7 @@ import { useStorage } from "@liveblocks/react";
 import { Rectangle } from "./subcomponents/rectangle";
 import { Ellipse } from "./subcomponents/ellipse";
 import { Text } from "./subcomponents/text";
+import { Note } from "./subcomponents/note";
 
 interface LayerPreviewProps {
     id: string;
@@ -62,6 +63,16 @@ export const LayerPreview = memo(({
                     selectionColor={selectionColor}
                 />
             )
+        
+            case LayerType.Note:
+                return (
+                    <Note
+                        id={id}
+                        layer={layer}
+                        onPointerDown={onLayerPointerDown}
+                        selectionColor={selectionColor}
+                    />
+                )
 
         default:
             console.warn("Unknown Layer Type")

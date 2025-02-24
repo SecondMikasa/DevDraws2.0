@@ -27,7 +27,9 @@ import { SelectionBox } from "./selection-box"
 import { CursorsPresence } from "./cursors-presence"
 import { SelectionTools } from "./selection-tools"
 
-import { useStorage } from "@liveblocks/react"
+import { Path } from "./subcomponents/path"
+
+import { useSelf, useStorage } from "@liveblocks/react"
 // import { useSelf } from "@liveblocks/react/suspense";
 import {
     useHistory,
@@ -40,6 +42,7 @@ import {
 import { LiveObject } from "@liveblocks/client"
 
 import {
+    colorToCss,
     connectionIdToColor,
     findIntersectingLayersWithRectangle,
     penPointsToPathLayer,
@@ -59,6 +62,7 @@ export const Canvas = ({
 
     // const info = useSelf((me) => me.info)
     // console.log(info)
+    const pencilDraft = useSelf((me) => me.presence.pencilDraft)
 
     // Retrieving info about all layers displayed on the canvas
     const layerIds = useStorage((root) => root.layerIds)
@@ -559,6 +563,14 @@ export const Canvas = ({
                     }
 
                     <CursorsPresence />
+                    {pencilDraft !== null && pencilDraft.length > 0 && (
+                        <Path
+                            points={pencilDraft}
+                            fill={colorToCss(lastUsedColor)}
+                            x={0}
+                            y={0}
+                        />
+                    )}
                 </g>
             </svg>
         </main>

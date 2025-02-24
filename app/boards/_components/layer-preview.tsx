@@ -10,6 +10,8 @@ import { Rectangle } from "./subcomponents/rectangle";
 import { Ellipse } from "./subcomponents/ellipse";
 import { Text } from "./subcomponents/text";
 import { Note } from "./subcomponents/note";
+import { Path } from "./subcomponents/path";
+import { colorToCss } from "@/lib/utils";
 
 interface LayerPreviewProps {
     id: string;
@@ -63,16 +65,29 @@ export const LayerPreview = memo(({
                     selectionColor={selectionColor}
                 />
             )
-        
-            case LayerType.Note:
-                return (
-                    <Note
-                        id={id}
-                        layer={layer}
-                        onPointerDown={onLayerPointerDown}
-                        selectionColor={selectionColor}
-                    />
-                )
+
+        case LayerType.Note:
+            return (
+                <Note
+                    id={id}
+                    layer={layer}
+                    onPointerDown={onLayerPointerDown}
+                    selectionColor={selectionColor}
+                />
+            )
+
+        case LayerType.Path: 
+            return (
+                <Path
+                    key={id}
+                    points={layer.points}
+                    x={layer.x}
+                    y={layer.y}
+                    fill={layer.fill ? colorToCss(layer.fill) : "#000"}
+                    onPointerDown={(e) => onLayerPointerDown(e, id)}
+                    stroke={selectionColor}
+                />
+            )
 
         default:
             console.warn("Unknown Layer Type")

@@ -42,6 +42,7 @@ import { LiveObject } from "@liveblocks/client"
 import {
     connectionIdToColor,
     findIntersectingLayersWithRectangle,
+    penPointsToPathLayer,
     pointerEventToCanvasPoint,
     resizeBounds
 } from "@/lib/utils"
@@ -201,6 +202,76 @@ export const Canvas = ({
         }
     }, [])
 
+    const startDrawing = useMutation((
+        { setMyPresence },
+        point: Point,
+        pressure: number
+    ) => {
+        setMyPresence({
+            pencilDraft: [[point.x, point.y, pressure]],
+            penColor: lastUsedColor
+        })
+
+        setCanvasState({ mode: CanvasMode.Pencil })
+    }, [lastUsedColor])
+
+    const continueDrawing = useMutation((
+        { self, setMyPresence },
+        point: Point,
+        e: React.PointerEvent
+    ) => {
+        const { pencilDraft } = self.presence
+
+        if (
+            canvasState.mode !== CanvasMode.Pencil ||
+            !pencilDraft
+        ) {
+            return
+        }
+
+        setMyPresence({
+            cursor: point,
+            pencilDraft: [
+                ...pencilDraft,
+                [point.x, point.y, e.pressure]
+            ]
+        })
+    }, [canvasState.mode])
+
+    const insertPath = useMutation((
+        { storage, self, setMyPresence }
+    ) => {
+        const liveLayers = storage.get("layers")
+        const { pencilDraft, penColor } = self.presence
+
+        if (
+            !pencilDraft ||
+            pencilDraft.length < 2 ||
+            liveLayers.size >= MAX_LAYERS
+        ) {
+            setMyPresence({ pencilDraft: null })
+            return
+        }
+
+        const id = nanoid()
+        const strokeColor = penColor || lastUsedColor
+
+        liveLayers.set(
+            id,
+            new LiveObject(penPointsToPathLayer(
+                pencilDraft,
+                strokeColor
+            ))
+        )
+
+        const liveLayerIds = storage.get("layerIds")
+        liveLayerIds.push(id)
+
+        setMyPresence({ pencilDraft: null })
+        setCanvasState({ mode: CanvasMode.None })
+
+    }, [lastUsedColor])
+
     const resizeSelectedLayer = useMutation((
         { storage, self },
         point: Point
@@ -266,13 +337,20 @@ export const Canvas = ({
             resizeSelectedLayer(current)
         }
 
+        else if (canvasState.mode === CanvasMode.Pencil) {
+            continueDrawing(current, e)
+        }
+
         setMyPresence({ cursor: current })
 
     }, [
         camera,
         canvasState,
+        continueDrawing,
+        updateSelectionNet,
+        startMultiSelection,
         resizeSelectedLayer,
-        translateSelectedLayers
+        translateSelectedLayers,
     ])
 
     const onPointersLeave = useMutation((
@@ -286,14 +364,16 @@ export const Canvas = ({
     const onPointersDown = useCallback((
         e: React.PointerEvent
     ) => {
-
         const point = pointerEventToCanvasPoint(e, camera)
+
+        if (canvasState.mode === CanvasMode.Pencil) {
+            startDrawing(point, e.pressure)
+            return
+        }
 
         if (canvasState.mode === CanvasMode.Inserting) {
             return
         }
-
-        // TODO: Add case for drawing later
 
         //FIXME: Add feedback for users having only read access
 
@@ -305,7 +385,7 @@ export const Canvas = ({
     }, [
         camera,
         canvasState.mode,
-        setCanvasState,
+        startDrawing
     ])
 
     const onPointersUp = useMutation((
@@ -330,20 +410,29 @@ export const Canvas = ({
             setCanvasState({
                 mode: CanvasMode.None
             })
-        } else if (
+        }
+        else if (
+            canvasState.mode === CanvasMode.Pencil
+        ) {
+            insertPath()
+        }
+        else if (
             canvasState.mode === CanvasMode.Inserting
         ) {
             insertLayer(canvasState.layerType, point)
-        } else {
+        }
+        else {
             setCanvasState({ mode: CanvasMode.None })
         }
 
-        history.resume
+        history.resume()
 
     }, [
         camera,
         canvasState,
+        setCanvasState,
         history,
+        insertPath,
         insertLayer,
         unselectLayers
     ])
@@ -464,7 +553,7 @@ export const Canvas = ({
                                 x={Math.min(canvasState.origin.x, canvasState.current.x)}
                                 y={Math.min(canvasState.origin.y, canvasState.current.y)}
                                 width={Math.abs(canvasState.origin.x - canvasState.current.x)}
-                                height={Math.abs(canvasState.origin.y -  canvasState.current.y)}
+                                height={Math.abs(canvasState.origin.y - canvasState.current.y)}
                             />
                         )
                     }

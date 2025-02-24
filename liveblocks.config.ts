@@ -6,7 +6,10 @@ import {
   LiveObject
 } from "@liveblocks/client"
 
-import { Layer, Color } from "@/types/canvas"
+import {
+  Layer,
+  Color
+} from "@/types/canvas"
 
 declare global {
   interface Liveblocks {
@@ -14,7 +17,9 @@ declare global {
     Presence: {
       // Example, real-time cursor coordinates
       cursor: { x: number; y: number } | null;
-      selection: string[]
+      selection: string[];
+      pencilDraft: [x: number, y: number, pressure: number][] | null;
+      penColor: Color | null;
     };
 
     // The Storage tree for the room, for useMutation, useStorage, etc.

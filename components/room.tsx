@@ -32,7 +32,9 @@ export const Room = ({
         id={roomId}
         initialPresence={{
           cursor: null,
-          selection: []
+          selection: [],
+          pencilDraft: null,
+          penColor: null
         }}
         initialStorage={{
           //A LiveMap that maps IDs to individual layer objects (LiveObject<Layer>).

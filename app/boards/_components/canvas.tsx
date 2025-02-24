@@ -3,7 +3,8 @@
 import {
     useCallback,
     useMemo,
-    useState
+    useState,
+    useEffect,
 } from "react"
 
 import { nanoid } from "nanoid"
@@ -50,6 +51,9 @@ import {
     resizeBounds
 } from "@/lib/utils"
 
+import { useDisableScrollBounce } from "@/hooks/use-disable-scroll-bounce"
+import { useDeleteLayers } from "@/hooks/use-delete-layer"
+
 interface CanvasProps {
     boardId: string;
 }
@@ -83,6 +87,8 @@ export const Canvas = ({
     const history = useHistory()
     const canUndo = useCanUndo()
     const canRedo = useCanRedo()
+    const deleteLayers = useDeleteLayers()
+    useDisableScrollBounce()
 
     const insertLayer = useMutation((
         { storage, setMyPresence },
@@ -503,6 +509,40 @@ export const Canvas = ({
         return layerIdsToColorSelection
 
     }, [selections])
+
+    useEffect(() => {
+
+        function onKeyDown(e: globalThis.KeyboardEvent) {
+            switch (e.key) {
+
+                //FIXME: While typing, backspace instead of removing alphabet removes the entire layer
+                // case "Backspace":
+                //     deleteLayers()
+                //     break;
+
+                case "z": {
+                    if (e.ctrlKey || e.metaKey) {
+                        if (e.shiftKey) {
+                            history.redo()
+                        } else {
+                            history.undo()
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        document.addEventListener("keydown", onKeyDown)
+
+        return () => {
+            document.removeEventListener("keydown", onKeyDown)
+        }
+
+    }, [
+        deleteLayers,
+        history
+    ])
 
     return (
         <main className="h-full w-full relative bg-neutral-100 touch-none">

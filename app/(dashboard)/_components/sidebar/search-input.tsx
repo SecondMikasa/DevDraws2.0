@@ -44,14 +44,14 @@ export const SearchInput = () => {
     return (
         <div className="w-full relative">
             <Search
-                className="absolute top-1/2 left-3 transform -translate-y-1/2 text-muted-foreground h-4 w-4"
+                className="absolute top-1/2 left-4 transform -translate-y-1/2 text-muted-foreground h-4 w-4 z-10 pointer-events-none"
             />
             <Input
-                className="w-full max-w-[516px] pl-9"
+                className="w-full !pl-12 pr-4"
                 placeholder="Search Through Boards"
                 onChange={handleChange}
                 value={value}
             />
-       </div> 
+        </div>
     )
 }

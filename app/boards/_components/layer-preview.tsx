@@ -16,13 +16,15 @@ import { colorToCss } from "@/lib/utils";
 interface LayerPreviewProps {
     id: string;
     onLayerPointerDown: (e: React.PointerEvent, layerId: string) => void;
-    selectionColor?: string
+    selectionColor?: string;
+    isViewOnly?: boolean;
 }
 
 export const LayerPreview = memo(({
     id,
     onLayerPointerDown,
-    selectionColor
+    selectionColor,
+    isViewOnly = false
 }: LayerPreviewProps) => {
 
     const layer = useStorage((root) => root.layers.get(id))
@@ -63,6 +65,7 @@ export const LayerPreview = memo(({
                     layer={layer}
                     onPointerDown={onLayerPointerDown}
                     selectionColor={selectionColor}
+                    isViewOnly={isViewOnly}
                 />
             )
 
@@ -73,6 +76,7 @@ export const LayerPreview = memo(({
                     layer={layer}
                     onPointerDown={onLayerPointerDown}
                     selectionColor={selectionColor}
+                    isViewOnly={isViewOnly}
                 />
             )
 

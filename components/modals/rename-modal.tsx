@@ -62,7 +62,7 @@ export const RenameModal = () => {
                 <DialogDescription>
                     Enter a new title for the board
                 </DialogDescription>
-                <form onSubmit={onSubmit} className="space-y-4">
+                <form onSubmit={onSubmit} className="space-y-6 sm:space-y-4">
                     <Input
                         disabled={pending}
                         required
@@ -70,14 +70,15 @@ export const RenameModal = () => {
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder="Board Title"
+                        autoFocus
                     />
                     <DialogFooter>
                         <DialogClose asChild>
-                            <Button type="button" variant="outline">
+                            <Button type="button" variant="outline" size="default">
                                 Cancel
                             </Button>
                         </DialogClose>
-                        <Button disabled={pending} type="submit">
+                        <Button disabled={pending} type="submit" size="default">
                             Save
                         </Button>
                     </DialogFooter>

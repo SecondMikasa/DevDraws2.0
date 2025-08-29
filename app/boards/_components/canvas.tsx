@@ -53,6 +53,7 @@ import {
 
 import { useDisableScrollBounce } from "@/hooks/use-disable-scroll-bounce"
 import { useDeleteLayers } from "@/hooks/use-delete-layer"
+import { useBoardLoading } from "@/providers/board-loading-provider"
 
 interface CanvasProps {
     boardId: string;
@@ -67,9 +68,14 @@ export const Canvas = ({
     // const info = useSelf((me) => me.info)
     // console.log(info)
     const pencilDraft = useSelf((me) => me.presence.pencilDraft)
+    const { removeLoadingState } = useBoardLoading()
 
     // Retrieving info about all layers displayed on the canvas
     const layerIds = useStorage((root) => root.layerIds)
+
+    // Mobile detection
+    const [isMobile, setIsMobile] = useState(false)
+    const [isViewOnly, setIsViewOnly] = useState(false)
 
     const [canvasState, setCanvasState] = useState<CanvasState>({
         mode: CanvasMode.None
@@ -83,6 +89,7 @@ export const Canvas = ({
     })
 
     const [camera, setCamera] = useState<Camera>({ x: 0, y: 0 })
+    const [zoom, setZoom] = useState(1)
 
     const history = useHistory()
     const canUndo = useCanUndo()
@@ -308,18 +315,29 @@ export const Canvas = ({
 
     // Used for zooming in and out of the canvas
     const onWheel = useCallback((e: React.WheelEvent) => {
+        e.preventDefault()
 
-        // console.log({
-        //     x: e.deltaX,
-        //     y: e.deltaY
-        // })
+        if (isViewOnly) {
+            // On mobile/view-only mode, use wheel for zooming
+            if (e.ctrlKey || e.metaKey) {
+                const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1
+                setZoom(prev => Math.max(0.1, Math.min(5, prev * zoomFactor)))
+            } else {
+                // Pan the canvas
+                setCamera((camera) => ({
+                    x: camera.x - e.deltaX,
+                    y: camera.y - e.deltaY
+                }))
+            }
+        } else {
+            // Desktop behavior - pan only
+            setCamera((camera) => ({
+                x: camera.x - e.deltaX,
+                y: camera.y - e.deltaY
+            }))
+        }
 
-        setCamera((camera) => ({
-            x: camera.x - e.deltaX,
-            y: camera.y - e.deltaY
-        }))
-
-    }, [])
+    }, [isViewOnly])
 
     const onPointersMove = useMutation((
         { setMyPresence },
@@ -331,27 +349,40 @@ export const Canvas = ({
         // Convert pointer event to canvas coordinates
         const current = pointerEventToCanvasPoint(e, camera)
 
-        if (canvasState.mode === CanvasMode.Pressing) {
-            startMultiSelection(current, canvasState.origin)
+        // In view-only mode, only allow panning
+        if (isViewOnly && canvasState.mode === CanvasMode.Pressing) {
+            const offset = {
+                x: current.x - canvasState.origin.x,
+                y: current.y - canvasState.origin.y
+            }
+            
+            setCamera(prev => ({
+                x: prev.x + offset.x,
+                y: prev.y + offset.y
+            }))
+            return
         }
 
-        else if (canvasState.mode === CanvasMode.SelectionNet) {
-            updateSelectionNet(current, canvasState.origin)
-        }
+        // Regular desktop behavior
+        if (!isViewOnly) {
+            if (canvasState.mode === CanvasMode.Pressing) {
+                startMultiSelection(current, canvasState.origin)
+            }
+            else if (canvasState.mode === CanvasMode.SelectionNet) {
+                updateSelectionNet(current, canvasState.origin)
+            }
+            else if (canvasState.mode === CanvasMode.Translating) {
+                translateSelectedLayers(current)
+            }
+            else if (canvasState.mode === CanvasMode.Resizing) {
+                resizeSelectedLayer(current)
+            }
+            else if (canvasState.mode === CanvasMode.Pencil) {
+                continueDrawing(current, e)
+            }
 
-        else if (canvasState.mode === CanvasMode.Translating) {
-            translateSelectedLayers(current)
+            setMyPresence({ cursor: current })
         }
-
-        else if (canvasState.mode === CanvasMode.Resizing) {
-            resizeSelectedLayer(current)
-        }
-
-        else if (canvasState.mode === CanvasMode.Pencil) {
-            continueDrawing(current, e)
-        }
-
-        setMyPresence({ cursor: current })
 
     }, [
         camera,
@@ -361,6 +392,7 @@ export const Canvas = ({
         startMultiSelection,
         resizeSelectedLayer,
         translateSelectedLayers,
+        isViewOnly
     ])
 
     const onPointersLeave = useMutation((
@@ -376,6 +408,15 @@ export const Canvas = ({
     ) => {
         const point = pointerEventToCanvasPoint(e, camera)
 
+        // If in view-only mode (mobile), only allow panning
+        if (isViewOnly) {
+            setCanvasState({
+                origin: point,
+                mode: CanvasMode.Pressing
+            })
+            return
+        }
+
         if (canvasState.mode === CanvasMode.Pencil) {
             startDrawing(point, e.pressure)
             return
@@ -385,8 +426,6 @@ export const Canvas = ({
             return
         }
 
-        //FIXME: Add feedback for users having only read access
-
         setCanvasState({
             origin: point,
             mode: CanvasMode.Pressing
@@ -395,7 +434,8 @@ export const Canvas = ({
     }, [
         camera,
         canvasState.mode,
-        startDrawing
+        startDrawing,
+        isViewOnly
     ])
 
     const onPointersUp = useMutation((
@@ -405,18 +445,18 @@ export const Canvas = ({
 
         const point = pointerEventToCanvasPoint(e, camera)
 
-        // console.log({
-        //     point,
-        //     mode: canvasState.mode,
-        // })
+        // In view-only mode, just reset to None mode
+        if (isViewOnly) {
+            setCanvasState({ mode: CanvasMode.None })
+            return
+        }
 
+        // Regular desktop behavior
         if (
             canvasState.mode === CanvasMode.None ||
             canvasState.mode === CanvasMode.Pressing
         ) {
-            // console.log("Unselect")
             unselectLayers()
-
             setCanvasState({
                 mode: CanvasMode.None
             })
@@ -444,7 +484,8 @@ export const Canvas = ({
         history,
         insertPath,
         insertLayer,
-        unselectLayers
+        unselectLayers,
+        isViewOnly
     ])
 
     const onLayerPointerDown = useMutation((
@@ -452,6 +493,11 @@ export const Canvas = ({
         e: React.PointerEvent,
         layerId: string
     ) => {
+
+        // Prevent layer interaction in view-only mode
+        if (isViewOnly) {
+            return
+        }
 
         if (
             canvasState.mode === CanvasMode.Pencil || canvasState.mode === CanvasMode.Inserting
@@ -470,7 +516,7 @@ export const Canvas = ({
 
         setCanvasState({ mode: CanvasMode.Translating, current: point })
 
-    }, [])
+    }, [isViewOnly])
 
     const onResizeHandlePointerDown = useCallback((
         corner: Side,
@@ -510,6 +556,26 @@ export const Canvas = ({
 
     }, [selections])
 
+    // Mobile detection and view-only mode setup
+    useEffect(() => {
+        const checkMobile = () => {
+            const isMobileDevice = window.innerWidth < 1024 // lg breakpoint
+            setIsMobile(isMobileDevice)
+            setIsViewOnly(isMobileDevice)
+        }
+        
+        checkMobile()
+        window.addEventListener('resize', checkMobile)
+        
+        return () => window.removeEventListener('resize', checkMobile)
+    }, [])
+
+    // Clear loading state when canvas loads
+    useEffect(() => {
+        // Clear the loading state for this board when the canvas mounts
+        removeLoadingState(boardId)
+    }, [boardId, removeLoadingState])
+
     useEffect(() => {
 
         function onKeyDown(e: globalThis.KeyboardEvent) {
@@ -548,20 +614,67 @@ export const Canvas = ({
         <main className="h-full w-full relative bg-neutral-100 touch-none">
             <Info boardId={boardId} />
             <Participants />
-            <Toolbar
-                canvasState={canvasState}
-                setCanvasState={setCanvasState}
-                canRedo={canRedo}
-                canUndo={canUndo}
-                undo={history.undo}
-                redo={history.redo}
-            />
-            <SelectionTools
-                camera={camera}
-                setLastUsedColor={setLastUsedColor}
-            />
+            
+            {/* Hide toolbar and selection tools in view-only mode */}
+            {!isViewOnly && (
+                <>
+                    <Toolbar
+                        canvasState={canvasState}
+                        setCanvasState={setCanvasState}
+                        canRedo={canRedo}
+                        canUndo={canUndo}
+                        undo={history.undo}
+                        redo={history.redo}
+                    />
+                    <SelectionTools
+                        camera={camera}
+                        setLastUsedColor={setLastUsedColor}
+                    />
+                </>
+            )}
+
+            {/* Mobile zoom controls */}
+            {isViewOnly && (
+                <div className="absolute bottom-4 right-4 flex flex-col gap-2 z-50">
+                    <button
+                        onClick={() => setZoom(prev => Math.min(5, prev * 1.2))}
+                        className="bg-white border border-gray-300 rounded-lg p-3 shadow-lg touch-manipulation active:scale-95 transition-transform"
+                    >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                    </button>
+                    <button
+                        onClick={() => setZoom(prev => Math.max(0.1, prev * 0.8))}
+                        className="bg-white border border-gray-300 rounded-lg p-3 shadow-lg touch-manipulation active:scale-95 transition-transform"
+                    >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                        </svg>
+                    </button>
+                    <button
+                        onClick={() => {
+                            setZoom(1)
+                            setCamera({ x: 0, y: 0 })
+                        }}
+                        className="bg-white border border-gray-300 rounded-lg p-3 shadow-lg touch-manipulation active:scale-95 transition-transform"
+                    >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                        </svg>
+                    </button>
+                </div>
+            )}
+
+            {/* View-only indicator */}
+            {isViewOnly && (
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-blue-100 border border-blue-300 rounded-lg px-3 py-2 text-xs text-blue-800 z-50 max-w-xs text-center">
+                    📱 View Only Mode - Drag to pan, use controls to zoom
+                </div>
+            )}
+
             <svg
-                className="h-[100vh] w-[100vw]"
+                className={`h-[100vh] w-[100vw] ${isViewOnly ? 'cursor-grab active:cursor-grabbing' : ''}`}
                 onWheel={onWheel}
                 onPointerMove={onPointersMove}
                 onPointerLeave={onPointersLeave}
@@ -570,7 +683,7 @@ export const Canvas = ({
             >
                 <g
                     style={{
-                        transform: `translate(${camera.x}px, ${camera.y}px)`
+                        transform: `translate(${camera.x}px, ${camera.y}px) scale(${zoom})`
                     }}
                 >
                     {layerIds?.map((layerId) => {
@@ -580,30 +693,37 @@ export const Canvas = ({
                                 id={layerId}
                                 onLayerPointerDown={onLayerPointerDown}
                                 selectionColor={layerIdsToColorSelection[layerId]}
+                                isViewOnly={isViewOnly}
                             />
                         )
                     })
                     }
-                    <SelectionBox
-                        onResizeHandlePointerDown={onResizeHandlePointerDown}
-                    />
-
-                    {
-                        canvasState.mode === CanvasMode.SelectionNet
-                        && canvasState.current != null
-                        && (
-                            <rect
-                                className="fill-blue-500/5 stroke-blue-500 stroke-1"
-                                x={Math.min(canvasState.origin.x, canvasState.current.x)}
-                                y={Math.min(canvasState.origin.y, canvasState.current.y)}
-                                width={Math.abs(canvasState.origin.x - canvasState.current.x)}
-                                height={Math.abs(canvasState.origin.y - canvasState.current.y)}
+                    
+                    {/* Hide selection box and selection net in view-only mode */}
+                    {!isViewOnly && (
+                        <>
+                            <SelectionBox
+                                onResizeHandlePointerDown={onResizeHandlePointerDown}
                             />
-                        )
-                    }
+
+                            {
+                                canvasState.mode === CanvasMode.SelectionNet
+                                && canvasState.current != null
+                                && (
+                                    <rect
+                                        className="fill-blue-500/5 stroke-blue-500 stroke-1"
+                                        x={Math.min(canvasState.origin.x, canvasState.current.x)}
+                                        y={Math.min(canvasState.origin.y, canvasState.current.y)}
+                                        width={Math.abs(canvasState.origin.x - canvasState.current.x)}
+                                        height={Math.abs(canvasState.origin.y - canvasState.current.y)}
+                                    />
+                                )
+                            }
+                        </>
+                    )}
 
                     <CursorsPresence />
-                    {pencilDraft !== null && pencilDraft.length > 0 && (
+                    {!isViewOnly && pencilDraft !== null && pencilDraft.length > 0 && (
                         <Path
                             points={pencilDraft}
                             fill={colorToCss(lastUsedColor)}

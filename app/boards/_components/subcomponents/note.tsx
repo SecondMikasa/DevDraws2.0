@@ -34,13 +34,15 @@ interface NoteProps {
     layer: NoteLayer;
     onPointerDown: (e: React.PointerEvent, id: string) => void;
     selectionColor?: string;
+    isViewOnly?: boolean;
 }
 
 export const Note = ({
     id,
     layer,
     onPointerDown,
-    selectionColor
+    selectionColor,
+    isViewOnly = false
 }: NoteProps) => {
 
     const { x, y, width, height, fill, value } = layer
@@ -56,6 +58,10 @@ export const Note = ({
 
     const handleContentChange = (e: ContentEditableEvent) => {
         updateValue(e.target.value)
+    }
+
+    const noOpChange = () => {
+        // No-op function for view-only mode
     }
 
     return (
@@ -78,10 +84,12 @@ export const Note = ({
             >
                 <ContentEditable
                     html={value || "Text"}
-                    onChange={handleContentChange}
+                    onChange={isViewOnly ? noOpChange : handleContentChange}
+                    disabled={isViewOnly}
                     className={cn(
                         "h-full w-full flex items-center justify-center text-center outline-none",
-                        font.className
+                        font.className,
+                        isViewOnly && "pointer-events-none"
                     )}
                     style={{
                         fontSize: calculateFontSize(width, height),

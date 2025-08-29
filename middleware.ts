@@ -1,6 +1,17 @@
 import { authMiddleware } from "@clerk/nextjs";
 
-export default authMiddleware({});
+export default authMiddleware({
+  // Routes that can be accessed while signed out
+  publicRoutes: [
+    "/sign-in(.*)",
+    "/sign-up(.*)",
+  ],
+  // Routes that can always be accessed, and have
+  // no authentication information
+  ignoredRoutes: [
+    "/((?!api|trpc))(_next.*|.+\\.[\\w]+$)",
+  ],
+});
 
 export const config = {
   matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],

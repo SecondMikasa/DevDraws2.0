@@ -30,13 +30,15 @@ interface TextProps {
     layer: TextLayer;
     onPointerDown: (e: React.PointerEvent, id: string) => void;
     selectionColor?: string;
+    isViewOnly?: boolean;
 }
 
 export const Text = ({
     id,
     layer,
     onPointerDown,
-    selectionColor
+    selectionColor,
+    isViewOnly = false
 }: TextProps) => {
 
     const { x, y, width, height, fill, value } = layer
@@ -54,6 +56,10 @@ export const Text = ({
         updateValue(e.target.value)
     }
 
+    const noOpChange = () => {
+        // No-op function for view-only mode
+    }
+
     return (
         <foreignObject
             x={x}
@@ -67,10 +73,12 @@ export const Text = ({
         >
             <ContentEditable
                 html={value || "Text"}
-                onChange={handleContentChange}
+                onChange={isViewOnly ? noOpChange : handleContentChange}
+                disabled={isViewOnly}
                 className={cn(
                     "h-full w-full flex items-center justify-center text-center drop-shadow-md outline-none",
-                    font.className
+                    font.className,
+                    isViewOnly && "pointer-events-none"
                 )}
                 style={{
                     fontSize: calculateFontSize(width, height),

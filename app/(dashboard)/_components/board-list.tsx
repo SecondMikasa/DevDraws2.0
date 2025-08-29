@@ -34,12 +34,12 @@ const BoardList = ({
         return (
             <div>
                 <h2
-                    className="text-3xl"
+                    className="text-xl sm:text-2xl lg:text-3xl font-semibold"
                 >
                     {query.favourites ? "Favourite Boards" : "Team Boards"}
                 </h2>
                 <div
-                    className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5 mt-8 pb-10"
+                    className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 lg:gap-5 mt-4 sm:mt-6 lg:mt-8 pb-6 sm:pb-8 lg:pb-10"
                 >
                     <NewBoardButton orgId={orgId} disabled />
                     <BoardCard.Skeleton />
@@ -73,12 +73,12 @@ const BoardList = ({
     return (
         <div>
             <h2
-                className="text-3xl"
+                className="text-xl sm:text-2xl lg:text-3xl font-semibold"
             >
                 {query.favourites ? "Favourite Boards" : "Team Boards"}
             </h2>
             <div
-                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-5 mt-8 pb-10"
+                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 lg:gap-5 mt-4 sm:mt-6 lg:mt-8 pb-6 sm:pb-8 lg:pb-10"
             >
                 <NewBoardButton
                     orgId={orgId}
